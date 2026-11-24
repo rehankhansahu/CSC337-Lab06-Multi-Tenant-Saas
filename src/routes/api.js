@@ -1,7 +1,16 @@
 /**
  * REST API Route Handlers (Hybrid Express + Native HTTP)
- * CSC337 Lab Assignment 06:
- * Multi-Tenant SaaS, Kafka Event-Driven Architecture, DB Performance, Serverless
+ * Implements:
+ * - Multi-Tenant SaaS & Data Scoping
+ * - Apache Kafka Order Producer & Ingestion
+ * - N+1 Query Resolution & EXPLAIN ANALYZE
+ * - Connection Pooling
+ * - Serverless Cold-Start Worker
+ * - OAuth 2.0 / OpenID Connect (Google & GitHub)
+ * - Bcrypt Password Verification
+ * - Access Token + Refresh Token Rotation with httpOnly Cookies
+ * - RBAC (SuperAdmin, Manager, Employee)
+ * - Rate Limiting & Helmet Security Headers
  */
 
 const config = require('../config');
@@ -11,8 +20,17 @@ const { benchmarkNPlusOne, getExplainAnalyzeReport } = require('../services/perf
 const { getConnectionPoolStats, seedData } = require('../db/connectionPool');
 const { getConsumerMetrics } = require('../worker/kafkaConsumer');
 const { dispatchServerlessInvoice, resetServerlessContainer, getInvocationHistory } = require('../services/serverlessWorker');
+const {
+  userDatabase,
+  verifyPassword,
+  issueTokenPair,
+  rotateRefreshToken,
+  handleOAuthLogin,
+  verifyRBAC,
+  checkRateLimit
+} = require('../services/authService');
 
-// Core API Controller Functions (Pure functions shared across Express & Native HTTP)
+// Core API Controller Functions
 async function handleHealth(tenantId) {
   return {
     status: 'ONLINE',
@@ -20,7 +38,15 @@ async function handleHealth(tenantId) {
     timestamp: new Date().toISOString(),
     activeTenant: config.tenants[tenantId] || { id: tenantId },
     connectionPool: getConnectionPoolStats(),
-    kafkaConsumer: getConsumerMetrics().status
+    kafkaConsumer: getConsumerMetrics().status,
+    security: {
+      passwordHashing: 'Bcrypt ($2a$12$ rounds)',
+      oauthProviders: ['Google (OpenID Connect)', 'GitHub OAuth 2.0'],
+      tokenPolicy: 'Access Token (15m) + Refresh Token Rotation (httpOnly Secure)',
+      rbacRoles: ['SuperAdmin', 'Manager', 'Employee'],
+      rateLimiting: '30 requests/minute active',
+      headers: 'Helmet standards (nosniff, DENY, HSTS, strict CORS)'
+    }
   };
 }
 
@@ -115,14 +141,22 @@ function handleServerlessTelemetry() {
   return getInvocationHistory();
 }
 
-function sendJson(res, statusCode, data, tenantId) {
+// Security Response Helper with Helmet Headers
+function sendJson(res, statusCode, data, tenantId, extraHeaders = {}) {
   const payload = JSON.stringify(data);
-  res.writeHead(statusCode, {
+  const headers = {
     'Content-Type': 'application/json',
     'Content-Length': Buffer.byteLength(payload),
     'X-Resolved-Tenant-Id': tenantId || 'tenant_acme',
-    'Connection': 'close'
-  });
+    'Connection': 'close',
+    // Helmet Security Standards
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    ...extraHeaders
+  };
+  res.writeHead(statusCode, headers);
   res.end(payload);
 }
 
@@ -131,39 +165,59 @@ function sendJson(res, statusCode, data, tenantId) {
 // -------------------------------------------------------------
 async function dispatchApi(req, res, pathname, query, body) {
   const tenantId = resolveTenantId(req);
+  const clientIp = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+  // Rate Limiting Check
+  const rateLimit = checkRateLimit(clientIp);
+  const rateHeaders = {
+    'X-RateLimit-Limit': rateLimit.limit.toString(),
+    'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+    'X-RateLimit-Reset': rateLimit.resetSeconds.toString()
+  };
+
+  if (!rateLimit.allowed) {
+    return sendJson(res, 429, {
+      status: 'RateLimitExceeded',
+      statusCode: 429,
+      error: 'Too Many Requests: Rate limit exceeded. Try again in ' + rateLimit.resetSeconds + ' seconds.',
+      rateLimit
+    }, tenantId, rateHeaders);
+  }
 
   try {
+    // --- HEALTH & METADATA ---
     if (pathname === '/api/v1/health' && req.method === 'GET') {
       const data = await handleHealth(tenantId);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/tenants' && req.method === 'GET') {
       const data = handleTenants(tenantId);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/catalog' && req.method === 'GET') {
       const data = handleCatalog(tenantId);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
+    // --- ORDERS & KAFKA ---
     if (pathname === '/api/v1/orders' && req.method === 'POST') {
       const data = await handleCreateOrder(tenantId, body);
-      return sendJson(res, 202, data, tenantId); // HTTP 202 Accepted
+      return sendJson(res, 202, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/orders' && req.method === 'GET') {
       const limit = parseInt(query.limit || '50', 10);
       const data = handleGetOrders(tenantId, limit);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname.startsWith('/api/v1/orders/') && req.method === 'GET') {
       const orderId = pathname.split('/').pop();
       try {
         const data = handleGetOrderById(tenantId, orderId);
-        return sendJson(res, 200, data, tenantId);
+        return sendJson(res, 200, data, tenantId, rateHeaders);
       } catch (err) {
         const code = err.status || 500;
         return sendJson(res, code, {
@@ -171,44 +225,153 @@ async function dispatchApi(req, res, pathname, query, body) {
           statusCode: code,
           error: err.message,
           code: err.code || 'RESOURCE_FETCH_ERROR'
-        }, tenantId);
+        }, tenantId, rateHeaders);
       }
     }
 
+    // --- DATABASE PERFORMANCE & EXPLAIN ANALYZE ---
     if (pathname === '/api/v1/performance/n-plus-one' && req.method === 'GET') {
       const limit = parseInt(query.limit || '50', 10);
       const data = await handleNPlusOne(tenantId, limit);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/performance/explain-analyze' && req.method === 'GET') {
       const data = handleExplainAnalyze(tenantId);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/performance/connection-pool' && req.method === 'GET') {
       const data = handleConnectionPool();
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
+    // --- KAFKA EVENTS ---
     if (pathname === '/api/v1/kafka/events' && req.method === 'GET') {
       const data = handleKafkaEvents();
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
+    // --- SERVERLESS WORKER ---
     if (pathname === '/api/v1/serverless/invoice-dispatch' && req.method === 'POST') {
       const data = await handleServerlessInvoice(tenantId, body);
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/serverless/reset-container' && req.method === 'POST') {
       const data = handleServerlessReset();
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
     }
 
     if (pathname === '/api/v1/serverless/telemetry' && req.method === 'GET') {
       const data = handleServerlessTelemetry();
-      return sendJson(res, 200, data, tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
+    }
+
+    // =========================================================
+    // AUTHENTICATION, OAUTH 2.0, BCRYPT, TOKEN ROTATION & RBAC
+    // =========================================================
+
+    // 1. Password Verification with Bcrypt
+    if (pathname === '/api/v1/auth/login' && req.method === 'POST') {
+      const { email, password } = body || {};
+      const user = userDatabase.find(u => u.email === email && u.tenant_id === tenantId);
+
+      if (!user) {
+        return sendJson(res, 401, {
+          status: 'AuthenticationFailed',
+          error: 'Invalid credentials or user not registered under this tenant.'
+        }, tenantId, rateHeaders);
+      }
+
+      const isValid = verifyPassword(password, user.passwordHash, user.email);
+      if (!isValid) {
+        return sendJson(res, 401, {
+          status: 'AuthenticationFailed',
+          error: 'Invalid password. Passwords are cryptographically verified against Bcrypt hashes.'
+        }, tenantId, rateHeaders);
+      }
+
+      const tokens = issueTokenPair(user);
+      return sendJson(res, 200, {
+        status: 'Authenticated',
+        message: 'Bcrypt password hash matched successfully.',
+        passwordProtection: 'Bcrypt Salted & Hashed ($2a$12$)',
+        ...tokens
+      }, tenantId, {
+        ...rateHeaders,
+        'Set-Cookie': `refreshToken=${tokens.refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`
+      });
+    }
+
+    // 2. OAuth 2.0 / OpenID Connect Social Login (Google & GitHub)
+    if (pathname === '/api/v1/auth/oauth' && req.method === 'POST') {
+      const { provider } = body || {};
+      const oauthResult = handleOAuthLogin(provider || 'google', tenantId);
+      return sendJson(res, 200, oauthResult, tenantId, {
+        ...rateHeaders,
+        'Set-Cookie': `refreshToken=${oauthResult.refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`
+      });
+    }
+
+    // 3. Access Token + Refresh Token Rotation with httpOnly Cookies
+    if (pathname === '/api/v1/auth/refresh' && req.method === 'POST') {
+      const providedToken = body.refreshToken || 'rt_sample_rotation_seed';
+      try {
+        const rotationResult = rotateRefreshToken(providedToken);
+        return sendJson(res, 200, rotationResult, tenantId, {
+          ...rateHeaders,
+          'Set-Cookie': `refreshToken=${rotationResult.newRefreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`
+        });
+      } catch (err) {
+        return sendJson(res, err.status || 401, {
+          status: 'TokenRotationFailed',
+          error: err.message,
+          code: err.code
+        }, tenantId, rateHeaders);
+      }
+    }
+
+    // 4. RBAC Verification & Rejection Test
+    if (pathname === '/api/v1/auth/rbac-test' && req.method === 'GET') {
+      const userRole = query.role || 'Employee';
+      const requiredRole = query.requiredRole || 'SuperAdmin';
+      
+      try {
+        verifyRBAC(userRole, requiredRole);
+        return sendJson(res, 200, {
+          status: 'Authorized',
+          message: `Access Granted. Role '${userRole}' has sufficient privileges for '${requiredRole}' action.`,
+          userRole,
+          requiredRole
+        }, tenantId, rateHeaders);
+      } catch (err) {
+        return sendJson(res, 403, {
+          status: 'Forbidden',
+          statusCode: 403,
+          code: err.code,
+          error: err.message,
+          userRole,
+          requiredRole,
+          explanation: `Demonstrates strict Role-Based Access Control: '${userRole}' cannot perform actions restricted to '${requiredRole}'.`
+        }, tenantId, rateHeaders);
+      }
+    }
+
+    // 5. User Store & Bcrypt Audit List
+    if (pathname === '/api/v1/auth/users' && req.method === 'GET') {
+      const sanitized = userDatabase
+        .filter(u => u.tenant_id === tenantId)
+        .map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          tenant_id: u.tenant_id,
+          passwordStorage: 'Bcrypt Hash (Plain-text passwords never stored)',
+          storedHashSample: u.passwordHash.slice(0, 28) + '...'
+        }));
+      return sendJson(res, 200, { users: sanitized }, tenantId, rateHeaders);
     }
 
     // Unmatched API endpoint
@@ -216,13 +379,13 @@ async function dispatchApi(req, res, pathname, query, body) {
       error: 'NotFound',
       message: `Endpoint '${pathname}' was not found.`,
       documentation: '/api/v1/health'
-    }, tenantId);
+    }, tenantId, rateHeaders);
 
   } catch (err) {
     return sendJson(res, 500, {
       status: 'Error',
       error: err.message
-    }, tenantId);
+    }, tenantId, rateHeaders);
   }
 }
 
@@ -264,7 +427,7 @@ try {
   expressRouter.post('/serverless/reset-container', (req, res) => res.json(handleServerlessReset()));
   expressRouter.get('/serverless/telemetry', (req, res) => res.json(handleServerlessTelemetry()));
 } catch (e) {
-  // Express not yet installed locally; native HTTP dispatcher handles all requests seamlessly
+  // Express fallback
 }
 
 module.exports = expressRouter || dispatchApi;

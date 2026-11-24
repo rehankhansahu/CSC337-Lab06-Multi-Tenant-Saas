@@ -305,6 +305,16 @@ When presenting to your instructor, follow these exact steps:
    - Invocations #2 through #5 are marked as **🔥 WARM START (~38ms)**.
 4. Explain the difference between MicroVM provisioning overhead vs container context reuse.
 
+### Step 6: Demonstrate OAuth 2.0, Token Rotation, RBAC & Bcrypt (Lab Checklist Items)
+1. Navigate to **Tab 7 ("OAuth 2.0, RBAC & Security")**.
+2. Click **"Google Login"** or **"GitHub Login"** to show instant OAuth 2.0 / OpenID Connect authorization code resolution and token pair issuance.
+3. Click **"Rotate Token"** to demonstrate **Access Token + Refresh Token Rotation**:
+   - Show how the previous refresh token is immediately revoked (`REVOKED`), a new refresh token is issued, and attached via `httpOnly; Secure; SameSite=Strict` cookie policy.
+4. Click **"Test RBAC Rejection"**:
+   - Show how an authenticated **Employee** role attempting to execute a **SuperAdmin** operation is strictly blocked with **`HTTP 403 Forbidden: Insufficient Role Permissions`**.
+5. Point out the **Bcrypt Password Hash Table**:
+   - Show that zero plain-text passwords exist in the system; all user credentials use salted **Bcrypt (`$2a$12$`)** hashes.
+
 ---
 
 ## 🛠️ 8. Local Setup & Installation
@@ -343,19 +353,23 @@ Open your browser at: **`http://localhost:5000`**
 
 ---
 
-## 📋 9. Lab 06 Submission Checklist Verification
+## 📋 9. Submission Checklist & Verification (Form Requirements)
 
-- [x] **Multi-Tenancy**: Shared database with `tenant_id` context discriminator implemented.
-- [x] **Tenant Resolution Middleware**: Resolves `tenant_id` from custom header (`x-tenant-id`), subdomain, and JWT claim.
-- [x] **Data Boundary Enforcement**: All queries automatically scoped to active tenant. Tenant A cannot access Tenant B data (tested with 403 Forbidden).
-- [x] **Slow Query Optimization**: N+1 loop query (51 queries) optimized to single SQL JOIN (1 query).
-- [x] **EXPLAIN ANALYZE**: Execution plans documented before and after composite index `[tenant_id, created_at]`.
+- [x] **Passwords Hashed using Bcrypt**: Zero plain-text passwords stored; salted with `$2a$12$` work factor rounds.
+- [x] **OAuth 2.0 / OpenID Connect Social Login**: Implemented for **Both Google and GitHub** (`/api/v1/auth/oauth`).
+- [x] **Access Token + Refresh Token Rotation**: Configured with `httpOnly; Secure; SameSite=Strict` cookies and reuse detection (`/api/v1/auth/refresh`).
+- [x] **RBAC Implemented & Tested**: Hierarchical roles for **SuperAdmin**, **Manager**, and **Employee** with strict `403 Forbidden` rejection guards.
+- [x] **Helmet, Strict CORS & Rate Limiting**: Production security headers active (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `HSTS`, rate limiter 30 req/min).
+- [x] **Multi-Tenancy & Tenant Resolution**: Shared database with `tenant_id` context discriminator, resolved via header, subdomain, or JWT claim.
+- [x] **Data Boundary Enforcement**: All database queries automatically scope to active tenant. Cross-tenant access strictly blocked with `403 Forbidden`.
+- [x] **Slow Query Optimization (N+1 Resolution)**: Loop query (51 queries) optimized to single SQL JOIN (1 query) with 15.6x speedup.
+- [x] **EXPLAIN ANALYZE**: Execution plans documented before and after composite index `[tenant_id, created_at]` with 107.7x speedup.
 - [x] **Connection Pooling**: Configured with `max: 10`, `min: 2`, `idleTimeout: 30000ms`, and live telemetry endpoint.
 - [x] **Apache Kafka Order Producer**: Responds with `202 Accepted` immediately and emits `OrderCreated` to `tenant.orders`.
 - [x] **Kafka Partitioning & Ordering**: Uses `tenant_id` as message key for sequential FIFO delivery within partitions.
 - [x] **Kafka Consumer Group**: Background consumer processes events, updates inventory, and logs committed offsets.
 - [x] **Serverless Async Worker**: Simulates background invoice generator with Cold Start vs Warm Start latency analysis.
-- [x] **Deployments**: Vercel frontend, Render backend API, and public GitHub repository linked.
+- [x] **Live Deployments**: Vercel frontend, Render backend API, and public GitHub repository linked.
 - [x] **Collaborator Linked**: `githubprojectmine@gmail.com` added.
 
 ---

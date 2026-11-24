@@ -59,7 +59,7 @@ function switchTab(tabId) {
   currentTab = tabId;
 
   // Update tab buttons
-  const tabs = ['orders', 'nplusone', 'explain', 'serverless', 'isolation', 'pool'];
+  const tabs = ['orders', 'nplusone', 'explain', 'serverless', 'isolation', 'pool', 'auth'];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab-${t}`);
     const panel = document.getElementById(`panel-${t}`);
@@ -487,4 +487,173 @@ function inspectSingleOrder(orderId) {
     .then(data => {
       alert(`Order Details:\nID: ${data.order.id}\nNumber: ${data.order.order_number}\nAmount: $${data.order.total_amount}\nStatus: ${data.order.status}\nItems Count: ${(data.order.items || []).length}`);
     });
+}
+
+// =========================================================================
+// TAB 7: AUTHENTICATION, OAUTH 2.0, TOKEN ROTATION & RBAC CONTROLLERS
+// =========================================================================
+
+let activeAuthSession = {
+  accessToken: null,
+  refreshToken: null,
+  user: null
+};
+
+/**
+ * Social Login via OAuth 2.0 / OpenID Connect (Google & GitHub)
+ */
+async function loginWithOAuth(provider) {
+  const consoleEl = document.getElementById('authConsoleOutput');
+  consoleEl.innerHTML = `<div class="text-yellow-400 animate-pulse">// Initiating OAuth 2.0 / OpenID Connect handshake with ${provider.toUpperCase()}...</div>`;
+
+  try {
+    const res = await fetch('/api/v1/auth/oauth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-tenant-id': currentTenantId
+      },
+      body: JSON.stringify({ provider })
+    });
+
+    const data = await res.json();
+    activeAuthSession.accessToken = data.accessToken;
+    activeAuthSession.refreshToken = data.refreshToken;
+    activeAuthSession.user = data.user;
+
+    document.getElementById('activeAuthSessionBadge').innerText = `${data.user.name} (${data.user.role})`;
+    document.getElementById('activeAuthSessionBadge').className = 'text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-mono font-bold';
+
+    consoleEl.innerHTML = `
+      <div class="text-emerald-400 font-bold">✅ OAuth 2.0 Authentication Successful!</div>
+      <div class="text-slate-400">Provider: <span class="text-white">${data.oauthProfile.provider}</span></div>
+      <div class="text-slate-400">Identity (sub): <span class="text-yellow-300">${data.oauthProfile.sub}</span></div>
+      <div class="text-slate-400">User: <span class="text-white font-bold">${data.user.name}</span> (${data.user.email})</div>
+      <div class="text-slate-400">Role Assigned: <span class="text-purple-400 font-bold">${data.user.role}</span></div>
+      <div class="text-blue-400 mt-2 font-bold">🔑 Access Token (15m expiry):</div>
+      <div class="text-slate-500 break-all text-[10px]">${data.accessToken.slice(0, 80)}...</div>
+      <div class="text-purple-400 mt-2 font-bold">🔄 Refresh Token (Issued & Stored in httpOnly Secure Cookie):</div>
+      <div class="text-slate-300 text-[10px]">${data.refreshToken}</div>
+    `;
+  } catch (err) {
+    consoleEl.innerHTML = `<div class="text-red-400">OAuth Login Error: ${err.message}</div>`;
+  }
+}
+
+/**
+ * Password Login with Bcrypt Verification
+ */
+async function loginWithBcrypt(email, password) {
+  const consoleEl = document.getElementById('authConsoleOutput');
+  consoleEl.innerHTML = `<div class="text-yellow-400 animate-pulse">// Verifying credentials against Bcrypt password hash...</div>`;
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-tenant-id': currentTenantId
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (res.status === 200) {
+      activeAuthSession.accessToken = data.accessToken;
+      activeAuthSession.refreshToken = data.refreshToken;
+      activeAuthSession.user = data.user;
+
+      document.getElementById('activeAuthSessionBadge').innerText = `${data.user.name} (${data.user.role})`;
+      document.getElementById('activeAuthSessionBadge').className = 'text-[10px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold';
+
+      consoleEl.innerHTML = `
+        <div class="text-emerald-400 font-bold">✅ Bcrypt Password Hash Verification Successful!</div>
+        <div class="text-slate-400">User: <span class="text-white">${data.user.name}</span> (${data.user.email})</div>
+        <div class="text-slate-400">RBAC Role: <span class="text-purple-400 font-bold">${data.user.role}</span></div>
+        <div class="text-slate-400">Hash Algorithm: <span class="text-emerald-300">${data.passwordProtection}</span></div>
+        <div class="text-blue-400 mt-2 font-bold">🔑 Access Token Issued (Bearer JWT):</div>
+        <div class="text-slate-500 break-all text-[10px]">${data.accessToken.slice(0, 80)}...</div>
+        <div class="text-purple-400 mt-2 font-bold">🔄 Refresh Token Set (httpOnly Secure Cookie):</div>
+        <div class="text-slate-300 text-[10px]">${data.refreshToken}</div>
+      `;
+    } else {
+      consoleEl.innerHTML = `<div class="text-red-400 font-bold">❌ Authentication Failed: ${data.error}</div>`;
+    }
+  } catch (err) {
+    consoleEl.innerHTML = `<div class="text-red-400">Login Error: ${err.message}</div>`;
+  }
+}
+
+/**
+ * Access Token + Refresh Token Rotation
+ */
+async function testTokenRotation() {
+  const consoleEl = document.getElementById('authConsoleOutput');
+
+  if (!activeAuthSession.refreshToken) {
+    // Generate an initial session if not logged in yet
+    await loginWithOAuth('google');
+  }
+
+  consoleEl.innerHTML += `<div class="text-purple-400 mt-2 animate-pulse">// Rotating Refresh Token (Invalidating old token & issuing new pair)...</div>`;
+
+  try {
+    const res = await fetch('/api/v1/auth/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-tenant-id': currentTenantId
+      },
+      body: JSON.stringify({ refreshToken: activeAuthSession.refreshToken })
+    });
+
+    const data = await res.json();
+    if (res.status === 200) {
+      activeAuthSession.refreshToken = data.newRefreshToken;
+      activeAuthSession.accessToken = data.newAccessToken;
+
+      consoleEl.innerHTML = `
+        <div class="text-emerald-400 font-bold">🔄 [TOKEN ROTATION SUCCESSFUL]</div>
+        <div class="text-slate-400">Previous Refresh Token: <span class="text-red-400 line-through">${data.previousTokenRevoked}</span> <span class="text-red-300 font-bold">(REVOKED)</span></div>
+        <div class="text-slate-400">New Rotated Refresh Token: <span class="text-emerald-400 font-mono font-bold">${data.newRefreshToken}</span></div>
+        <div class="text-slate-400">Rotation Counter: <span class="text-yellow-300 font-bold">#${data.rotationCount}</span></div>
+        <div class="text-slate-400">Cookie Security: <code class="text-blue-300 text-[10px]">${data.cookiePolicy}</code></div>
+        <div class="text-emerald-300 mt-2 text-[11px]">Zero Token Reuse Guarantee: Re-submitting the revoked token triggers instant session termination.</div>
+      `;
+    } else {
+      consoleEl.innerHTML += `<div class="text-red-400">Rotation Failed: ${data.error}</div>`;
+    }
+  } catch (err) {
+    consoleEl.innerHTML += `<div class="text-red-400">Rotation Error: ${err.message}</div>`;
+  }
+}
+
+/**
+ * Demonstrate RBAC Rejection (Employee attempting SuperAdmin action)
+ */
+async function testRbacRejection() {
+  const consoleEl = document.getElementById('authConsoleOutput');
+  consoleEl.innerHTML = `<div class="text-yellow-400 animate-pulse">// Testing RBAC Guard: Simulating 'Employee' role requesting 'SuperAdmin' resource...</div>`;
+
+  try {
+    const res = await fetch('/api/v1/auth/rbac-test?role=Employee&requiredRole=SuperAdmin', {
+      headers: { 'x-tenant-id': currentTenantId }
+    });
+
+    const data = await res.json();
+    if (res.status === 403) {
+      consoleEl.innerHTML = `
+        <div class="text-red-400 font-bold">🚫 [RBAC AUTHORIZATION REJECTED - HTTP 403 FORBIDDEN]</div>
+        <div class="text-slate-400">User Role: <span class="text-amber-400 font-bold font-mono">Employee</span></div>
+        <div class="text-slate-400">Required Role: <span class="text-purple-400 font-bold font-mono">SuperAdmin</span></div>
+        <div class="text-red-300 mt-1">Error Code: <code>${data.code}</code></div>
+        <div class="text-slate-300 mt-1">Message: "${data.error}"</div>
+        <div class="text-emerald-400 mt-2 text-[11px]">Strict RBAC Enforcement: Employee role lacks administrative privileges and was strictly denied.</div>
+      `;
+    } else {
+      consoleEl.innerHTML = `<div class="text-yellow-400">Response: ${JSON.stringify(data)}</div>`;
+    }
+  } catch (err) {
+    consoleEl.innerHTML = `<div class="text-red-400">RBAC Request Failed: ${err.message}</div>`;
+  }
 }
