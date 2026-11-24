@@ -1,6 +1,6 @@
 /**
  * Frontend Dashboard Controller
- * CSC337 Lab Assignment 06: Multi-Tenant Kafka SaaS Platform
+ * Enterprise Multi-Tenant Kafka SaaS Platform
  */
 
 let currentTenantId = 'tenant_acme';

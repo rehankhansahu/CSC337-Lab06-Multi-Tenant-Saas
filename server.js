@@ -127,7 +127,7 @@ if (require.main === module) {
 
 function printServerBanner(port, engine) {
   console.log(`================================================================`);
-  console.log(`🚀 CSC337 Lab 06 Multi-Tenant Kafka SaaS Platform`);
+  console.log(`🚀 Enterprise Multi-Tenant Kafka SaaS Platform`);
   console.log(`⚡ Engine: ${engine}`);
   console.log(`📡 URL: http://localhost:${port}`);
   console.log(`🏢 Active Tenants: ${Object.keys(config.tenants).join(', ')}`);

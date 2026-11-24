@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSC337 Lab 06: Multi-Tenant Kafka SaaS & Performance Platform</title>
+  <title>Enterprise Multi-Tenant SaaS Platform & Performance Engine</title>
   <!-- Tailwind CSS via CDN for instant, zero-build modern styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
@@ -21,7 +21,7 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base text-white tracking-tight">CSC337 Lab 06: Enterprise Multi-Tenant SaaS</h1>
+            <h1 class="font-bold text-base text-white tracking-tight">Enterprise Multi-Tenant SaaS Platform</h1>
             <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Production Ready</span>
           </div>
           <p class="text-xs text-slate-400">Database Performance Tuning • Apache Kafka • Serverless Cold-Start • Strict Isolation</p>
@@ -260,7 +260,7 @@
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
-            N+1 Query Bottleneck Elimination Lab (Lecture 17)
+            Database Query Performance & N+1 Problem Resolution
           </h2>
           <p class="text-xs text-slate-300 mt-1 max-w-2xl">
             Demonstrates the classic architectural defect: fetching 50 orders in 1 query, then executing 50 separate queries in a loop to fetch line items (51 queries total). Then demonstrates the optimized resolution: 1 single SQL JOIN query with eager aggregation.
@@ -367,7 +367,7 @@ GROUP BY o.id LIMIT 50;</pre>
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i data-lucide="gauge" class="w-5 h-5 text-indigo-400"></i>
-            PostgreSQL EXPLAIN ANALYZE: Composite Indexing (Lecture 17)
+            PostgreSQL Execution Plans: EXPLAIN ANALYZE & Index Tuning
           </h2>
           <p class="text-xs text-slate-300 mt-1 max-w-2xl">
             Execution plan analysis for: <code class="bg-slate-800 text-indigo-300 px-1 py-0.5 rounded">SELECT * FROM orders WHERE tenant_id = 'tenant_acme' AND created_at >= '2026-01-01' ORDER BY created_at DESC;</code>
@@ -454,7 +454,7 @@ Execution Time: 0.412 ms</pre>
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i data-lucide="snowflake" class="w-5 h-5 text-cyan-400"></i>
-            Serverless Async Worker & Cold-Start Analysis (Lecture 17)
+            Serverless Async Background Worker & Cold-Start Latency Profiler
           </h2>
           <p class="text-xs text-slate-300 mt-1 max-w-2xl">
             Simulates a background Serverless Function (Vercel Serverless / AWS Lambda) executing PDF invoice generation & asynchronous email dispatch. Automatically tracks MicroVM cold provisioning latency vs warm container context reuse.
@@ -521,7 +521,7 @@ Execution Time: 0.412 ms</pre>
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
-            Strict Multi-Tenant Isolation & Cross-Tenant Boundary Lab (Lecture 18)
+            Strict Multi-Tenant Isolation & Cross-Tenant Boundary Security
           </h2>
           <p class="text-xs text-slate-300 mt-1 max-w-2xl">
             Verifies that all database queries and API operations automatically scope to the active tenant. Tenant A must <span class="text-red-400 font-bold uppercase underline">NEVER</span> access Tenant B's data under any circumstance.
@@ -640,9 +640,9 @@ Execution Time: 0.412 ms</pre>
   <footer class="border-t border-slate-800 bg-slate-950 mt-12 py-6 text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <span>CSC337: Advanced Web Technologies • Lab Assignment 06</span>
-        <span class="mx-2">•</span>
-        <span>Student: <strong>Muhammad Rehan</strong> (rehankhansahu)</span>
+        <span class="font-semibold text-slate-300">Enterprise Multi-Tenant SaaS Platform</span>
+        <span class="mx-2 text-slate-700">•</span>
+        <span>Developer: <strong>Muhammad Rehan</strong> (@rehankhansahu)</span>
       </div>
       <div>
         <span>Built with Node.js, Express, Apache Kafka, PostgreSQL & Serverless Functions</span>

@@ -16,7 +16,7 @@ const { dispatchServerlessInvoice, resetServerlessContainer, getInvocationHistor
 async function handleHealth(tenantId) {
   return {
     status: 'ONLINE',
-    service: 'CSC337 Multi-Tenant Kafka SaaS Platform',
+    service: 'Enterprise Multi-Tenant Kafka SaaS Platform',
     timestamp: new Date().toISOString(),
     activeTenant: config.tenants[tenantId] || { id: tenantId },
     connectionPool: getConnectionPoolStats(),
