@@ -71,6 +71,11 @@ If a user authenticated under **Tenant A** requests a resource belonging to **Te
   <img src="./docs/eventdriven.png" alt="Multi-Tenant Event-Driven Architecture with Apache Kafka Pipeline" width="100%" />
 </p>
 
+#### 📸 Live Dashboard Ingestion (Orders & Kafka Offset Stream):
+<p align="center">
+  <img src="./docs/screenshot1_orders_kafka.png" alt="Orders and Kafka Live Stream Screenshot" width="100%" />
+</p>
+
 ### Partitioning & Ordering Guarantee:
 - **Why `tenant_id` as the Kafka Message Key?** 
   Apache Kafka hashes the message key to assign records to a deterministic partition. Using `tenant_id` guarantees that all orders placed by `tenant_acme` consistently route to **Partition 0**, and all orders placed by `tenant_globex` route to **Partition 1**.
@@ -113,6 +118,11 @@ LIMIT 50;
 | **Network Roundtrips** | 51 Roundtrips | **1 Roundtrip** | 50 Roundtrips Eliminated |
 | **Execution Latency** | 184.2 ms | **11.8 ms** | **15.6x Faster (93.6% Latency Drop)** |
 | **Pool Impact** | Connection starvation risk | Constant connection reuse | Zero pool thrashing |
+
+#### 📸 Live Benchmark Execution (51 Queries vs 1 Single JOIN):
+<p align="center">
+  <img src="./docs/screenshot2_nplusone_benchmark.png" alt="N+1 Query Resolution Benchmark Screenshot" width="100%" />
+</p>
 
 ---
 
@@ -161,6 +171,11 @@ Execution Time: 0.412 ms
 | **Actual Execution Time** | **`44.380 ms`** | **`0.412 ms`** | **107.7x Speedup (99.07% faster)** |
 | **Index Condition** | None (scanned entire disk) | `(tenant_id, created_at)` | Direct leaf node seek |
 
+#### 📸 Live PostgreSQL EXPLAIN ANALYZE Execution Plans:
+<p align="center">
+  <img src="./docs/screenshot3_explain_analyze.png" alt="EXPLAIN ANALYZE Execution Plan Screenshot" width="100%" />
+</p>
+
 ---
 
 ### C. Database Connection Pooling Configuration
@@ -199,6 +214,11 @@ The platform includes a simulated serverless background worker (`POST /api/v1/se
 | **🔥 Warm Start** | Existing container context reuse, cached memory heap, and open DB connections | **~38 ms** | **16.2x Faster** |
 
 The UI includes a **"Force Cold Start"** button that recycles the execution container to demonstrate this latency difference live during viva!
+
+#### 📸 Live Serverless Container Profiler (Cold Start vs Warm Start):
+<p align="center">
+  <img src="./docs/screenshot4_serverless_coldstart.png" alt="Serverless Cold Start vs Warm Start Profiler Screenshot" width="100%" />
+</p>
 
 ---
 
@@ -270,6 +290,11 @@ When presenting to your instructor, follow these exact steps:
    - Show how an authenticated **Employee** role attempting to execute a **SuperAdmin** operation is strictly blocked with **`HTTP 403 Forbidden: Insufficient Role Permissions`**.
 5. Point out the **Bcrypt Password Hash Table**:
    - Show that zero plain-text passwords exist in the system; all user credentials use salted **Bcrypt (`$2a$12$`)** hashes.
+
+#### 📸 Live Security & RBAC Guard Rejection (HTTP 403 Forbidden):
+<p align="center">
+  <img src="./docs/screenshot5_security_rbac.png" alt="OAuth and RBAC Authorization Screenshot" width="100%" />
+</p>
 
 ---
 

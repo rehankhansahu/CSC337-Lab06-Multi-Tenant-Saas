@@ -13,6 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
   switchTenant('tenant_acme');
   startKafkaPolling();
   fetchPoolStats();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedTab = urlParams.get('tab') || window.location.hash.replace('#', '');
+  if (requestedTab && ['orders', 'nplusone', 'explain', 'serverless', 'isolation', 'pool', 'auth'].includes(requestedTab)) {
+    switchTab(requestedTab);
+  }
 });
 
 /**
