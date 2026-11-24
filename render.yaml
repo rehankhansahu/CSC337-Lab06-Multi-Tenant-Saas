@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: csc337-lab06-multi-tenant-saas
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: PG_POOL_MAX
+        value: 10
+      - key: PG_POOL_MIN
+        value: 2
+      - key: KAFKA_TOPIC
+        value: tenant.orders

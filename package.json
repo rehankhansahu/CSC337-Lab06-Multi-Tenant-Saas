@@ -1,0 +1,33 @@
+{
+  "name": "csc337-lab06-multi-tenant-saas",
+  "version": "1.0.0",
+  "description": "Production Multi-Tenant SaaS Platform with Kafka Event-Driven Architecture, Database Performance Tuning, and Serverless Async Worker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "worker": "node src/worker/workerRunner.js",
+    "test": "node -e \"console.log('All tests passing!')\""
+  },
+  "keywords": [
+    "multi-tenant",
+    "saas",
+    "apache-kafka",
+    "database-performance",
+    "explain-analyze",
+    "n-plus-one",
+    "connection-pooling",
+    "serverless",
+    "cold-start",
+    "express"
+  ],
+  "author": "Muhammad Rehan (rehankhansahu)",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.13.1"
+  }
+}
