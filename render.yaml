@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: csc337-lab06-multi-tenant-saas
+    name: multi-tenant-saas
     env: node
     plan: free
     buildCommand: npm install

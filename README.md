@@ -1,9 +1,9 @@
 # 🚀 CSC337: Advanced Web Technologies - Lab Assignment 06
 ## Production-Ready Multi-Tenant SaaS Platform with Apache Kafka, Database Performance Tuning & Serverless Worker
 
-[![Live on Vercel](https://img.shields.io/badge/Vercel-Live_Demo-black?logo=vercel)](https://csc337-lab06-multi-tenant-saas.vercel.app)
-[![API on Render](https://img.shields.io/badge/Render-Backend_API-46E3B7?logo=render)](https://csc337-lab06-multi-tenant-saas.onrender.com/api/v1/health)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-rehankhansahu-blue?logo=github)](https://github.com/rehankhansahu/CSC337-Lab06-MultiTenant-Kafka-SaaS)
+[![Live on Vercel](https://img.shields.io/badge/Vercel-Live_Demo-black?logo=vercel)](https://multi-tenant-saas.vercel.app)
+[![API on Render](https://img.shields.io/badge/Render-Backend_API-46E3B7?logo=render)](https://multi-tenant-saas.onrender.com/api/v1/health)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-rehankhansahu-blue?logo=github)](https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green?logo=nodedotjs)](https://nodejs.org/)
 [![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-Event_Driven-orange?logo=apachekafka)](https://kafka.apache.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Connection_Pool-blue?logo=postgresql)](https://www.postgresql.org/)
@@ -26,9 +26,9 @@ The system implements a high-throughput, multi-tenant B2B SaaS platform that:
 
 | Resource | URL | Description |
 | :--- | :--- | :--- |
-| **🌐 Live Frontend App (Vercel)** | [https://csc337-lab06-multi-tenant-saas.vercel.app](https://csc337-lab06-multi-tenant-saas.vercel.app) | Interactive visual SaaS Dashboard |
-| **⚡ Live Backend API (Render)** | [https://csc337-lab06-multi-tenant-saas.onrender.com/api/v1/health](https://csc337-lab06-multi-tenant-saas.onrender.com/api/v1/health) | REST API & Health Check Endpoint |
-| **🐙 Public GitHub Repository** | [https://github.com/rehankhansahu/CSC337-Lab06-MultiTenant-Kafka-SaaS](https://github.com/rehankhansahu/CSC337-Lab06-MultiTenant-Kafka-SaaS) | Full Source Code & Documentation |
+| **🌐 Live Frontend App (Vercel)** | [https://multi-tenant-saas.vercel.app](https://multi-tenant-saas.vercel.app) | Interactive visual SaaS Dashboard |
+| **⚡ Live Backend API (Render)** | [https://multi-tenant-saas.onrender.com/api/v1/health](https://multi-tenant-saas.onrender.com/api/v1/health) | REST API & Health Check Endpoint |
+| **🐙 Public GitHub Repository** | [https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas](https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas) | Full Source Code & Documentation |
 | **📧 Required Submission Collaborator** | `githubprojectmine@gmail.com` | Linked / Invited as required by instructor |
 
 ---
@@ -315,8 +315,8 @@ When presenting to your instructor, follow these exact steps:
 
 ### 1. Clone Repository:
 ```bash
-git clone https://github.com/rehankhansahu/CSC337-Lab06-MultiTenant-Kafka-SaaS.git
-cd CSC337-Lab06-MultiTenant-Kafka-SaaS
+git clone https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas.git
+cd CSC337-Lab06-Multi-Tenant-Saas
 ```
 
 ### 2. Install Dependencies:
