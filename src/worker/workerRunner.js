@@ -1,7 +1,7 @@
 /**
  * Standalone Background Kafka Consumer Worker Process
  * Run with: npm run worker
- * Can be deployed as a background worker on Render, Docker, or Kubernetes.
+ * Can be deployed as a background worker or cloud service.
  */
 
 const { getConsumerMetrics } = require('./kafkaConsumer');

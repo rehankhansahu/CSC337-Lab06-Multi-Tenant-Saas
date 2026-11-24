@@ -2,8 +2,8 @@
 ## Production-Ready Multi-Tenant SaaS Platform with Apache Kafka, Database Performance Tuning & Serverless Worker
 
 [![Live on Vercel](https://img.shields.io/badge/Vercel-Live_Demo-black?logo=vercel)](https://csc337-multi-tenant-saas.vercel.app)
-[![API on Render](https://img.shields.io/badge/Render-Backend_API-46E3B7?logo=render)](https://multi-tenant-saas.onrender.com/api/v1/health)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-rehankhansahu-blue?logo=github)](https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Muhammad_Rehan-blue?logo=googlechrome)](https://rehankhansahu.github.io/muhammad-rehan-portfolio/)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-rehankhansahu-indigo?logo=github)](https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-green?logo=nodedotjs)](https://nodejs.org/)
 [![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-Event_Driven-orange?logo=apachekafka)](https://kafka.apache.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Connection_Pool-blue?logo=postgresql)](https://www.postgresql.org/)
@@ -26,8 +26,9 @@ The system implements a high-throughput, multi-tenant B2B SaaS platform that:
 
 | Resource | URL | Description |
 | :--- | :--- | :--- |
-| **🌐 Live Frontend App (Vercel)** | [https://csc337-multi-tenant-saas.vercel.app](https://csc337-multi-tenant-saas.vercel.app) | Interactive visual SaaS Dashboard |
-| **⚡ Live Backend API (Render)** | [https://multi-tenant-saas.onrender.com/api/v1/health](https://multi-tenant-saas.onrender.com/api/v1/health) | REST API & Health Check Endpoint |
+| **🌐 Live Deployed Application (Vercel)** | [https://csc337-multi-tenant-saas.vercel.app](https://csc337-multi-tenant-saas.vercel.app) | Interactive visual SaaS Dashboard |
+| **⚡ Live Backend API Base URL** | [https://csc337-multi-tenant-saas.vercel.app/api/v1](https://csc337-multi-tenant-saas.vercel.app/api/v1) | REST API & Health Check Endpoint (`/api/v1/health`) |
+| **💼 Developer Portfolio** | [https://rehankhansahu.github.io/muhammad-rehan-portfolio/](https://rehankhansahu.github.io/muhammad-rehan-portfolio/) | Muhammad Rehan - Developer Portfolio |
 | **🐙 Public GitHub Repository** | [https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas](https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas) | Full Source Code & Documentation |
 | **📧 Required Submission Collaborator** | `githubprojectmine@gmail.com` | Linked / Invited as required by instructor |
 
@@ -369,7 +370,7 @@ Open your browser at: **`http://localhost:5000`**
 - [x] **Kafka Partitioning & Ordering**: Uses `tenant_id` as message key for sequential FIFO delivery within partitions.
 - [x] **Kafka Consumer Group**: Background consumer processes events, updates inventory, and logs committed offsets.
 - [x] **Serverless Async Worker**: Simulates background invoice generator with Cold Start vs Warm Start latency analysis.
-- [x] **Live Deployments**: Vercel frontend, Render backend API, and public GitHub repository linked.
+- [x] **Live Deployments**: Production Vercel deployment (Frontend + Serverless Backend API) and public GitHub repository linked.
 - [x] **Collaborator Linked**: `githubprojectmine@gmail.com` added.
 
 ---

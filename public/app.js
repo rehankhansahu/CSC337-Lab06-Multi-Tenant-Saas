@@ -81,7 +81,7 @@ function switchTab(tabId) {
 }
 
 /**
- * Fetch and Render Tenant Product Catalog
+ * Fetch and Display Tenant Product Catalog
  */
 async function fetchCatalog() {
   try {
@@ -117,7 +117,7 @@ async function fetchCatalog() {
 }
 
 /**
- * Fetch and Render Orders for Current Tenant
+ * Fetch and Display Orders for Current Tenant
  */
 async function fetchOrders() {
   try {
