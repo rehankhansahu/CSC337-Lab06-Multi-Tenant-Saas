@@ -67,54 +67,9 @@ If a user authenticated under **Tenant A** requests a resource belonging to **Te
 
 ### System Architecture Flow:
 
-```
-+---------------------------------------------------------------------------------------------------+
-|                                         API CLIENT (HTTP)                                         |
-+---------------------------------------------------------------------------------------------------+
-                                                  |
-                                                  | 1. POST /api/v1/orders (x-tenant-id: tenant_acme)
-                                                  v
-+---------------------------------------------------------------------------------------------------+
-|                                   TENANT RESOLUTION MIDDLEWARE                                    |
-|                             (Validates Tenant Context & Scope Boundary)                           |
-+---------------------------------------------------------------------------------------------------+
-            |                                                     |
-            | 2. Immediate HTTP 202 Accepted                      | 3. OrderCreated Event Dispatch
-            v                                                     v
-+-----------------------+                         +-------------------------------+
-|  HTTP CLIENT RESPONSE |                         |   APACHE KAFKA PRODUCER       |
-|  Status: 202 Accepted |                         |   Topic: tenant.orders        |
-|  Partition: 0         |                         |   Key: tenant_id (Partition)  |
-|  Offset: 101          |                         +-------------------------------+
-+-----------------------+                                         |
-                                                                  | 4. Partitioned Streaming
-                                                                  v
-+---------------------------------------------------------------------------------------------------+
-|                                   KAFKA BROKER (tenant.orders)                                    |
-|   +-------------------------------+   +-------------------------------+   +-------------------+   |
-|   | Partition 0 (Key: tenant_acme)|   | Partition 1 (Key: tenant_glx) |   | Partition 2       |   |
-|   | Offset: 100 -> 101 -> 102 ... |   | Offset: 100 -> 101 -> 102 ... |   | Offset: 100 ...   |   |
-|   +-------------------------------+   +-------------------------------+   +-------------------+   |
-+---------------------------------------------------------------------------------------------------+
-                                                  |
-                                                  | 5. Event Batch Consumption
-                                                  v
-+---------------------------------------------------------------------------------------------------+
-|                          KAFKA CONSUMER GROUP (orders-consumer-group)                             |
-|  - Asynchronously consumes OrderCreated event batch                                               |
-|  - Atomically updates inventory & deducts product stock                                           |
-|  - Transitions order state: PENDING_ENQUEUED -> PROCESSING -> COMPLETED                           |
-|  - Commits Kafka offsets safely to partition log                                                  |
-+---------------------------------------------------------------------------------------------------+
-                                                  |
-                                                  | 6. Asynchronous Background Task Dispatch
-                                                  v
-+---------------------------------------------------------------------------------------------------+
-|                              SERVERLESS WORKER (Vercel / AWS Lambda)                              |
-|                          - Asynchronous PDF Invoice Generation & Email                            |
-|                          - Cold-Start (~615ms) vs Warm-Start (~38ms) Profiler                     |
-+---------------------------------------------------------------------------------------------------+
-```
+<p align="center">
+  <img src="./docs/eventdriven.png" alt="Multi-Tenant Event-Driven Architecture with Apache Kafka Pipeline" width="100%" />
+</p>
 
 ### Partitioning & Ordering Guarantee:
 - **Why `tenant_id` as the Kafka Message Key?** 
