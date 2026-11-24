@@ -374,6 +374,6 @@ Open your browser at: **`http://localhost:5000`**
 
 ---
 
-**Developed for CSC337: Advanced Web Technologies**  
-**Student Name:** Muhammad Rehan  
+**Developer:** Muhammad Rehan  
+**Portfolio:** [https://rehankhansahu.github.io/muhammad-rehan-portfolio/](https://rehankhansahu.github.io/muhammad-rehan-portfolio/)  
 **GitHub:** [@rehankhansahu](https://github.com/rehankhansahu)
