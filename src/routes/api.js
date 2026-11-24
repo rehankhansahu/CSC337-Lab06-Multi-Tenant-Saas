@@ -426,6 +426,53 @@ try {
   expressRouter.post('/serverless/invoice-dispatch', async (req, res) => res.json(await handleServerlessInvoice(req.tenant.id, req.body)));
   expressRouter.post('/serverless/reset-container', (req, res) => res.json(handleServerlessReset()));
   expressRouter.get('/serverless/telemetry', (req, res) => res.json(handleServerlessTelemetry()));
+
+  // Auth, OAuth 2.0, Bcrypt, Token Rotation & RBAC
+  expressRouter.post('/auth/login', (req, res) => {
+    const { email, password } = req.body || {};
+    const user = userDatabase.find(u => u.email === email && u.tenant_id === req.tenant.id);
+    if (!user) return res.status(401).json({ status: 'AuthenticationFailed', error: 'Invalid credentials or user not registered under this tenant.' });
+    const isValid = verifyPassword(password, user.passwordHash, user.email);
+    if (!isValid) return res.status(401).json({ status: 'AuthenticationFailed', error: 'Invalid password. Passwords verified against Bcrypt hashes.' });
+    const tokens = issueTokenPair(user);
+    res.setHeader('Set-Cookie', `refreshToken=${tokens.refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`);
+    res.json({ status: 'Authenticated', message: 'Bcrypt password hash matched successfully.', passwordProtection: 'Bcrypt Salted & Hashed ($2a$12$)', ...tokens });
+  });
+
+  expressRouter.post('/auth/oauth', (req, res) => {
+    const { provider } = req.body || {};
+    const oauthResult = handleOAuthLogin(provider || 'google', req.tenant.id);
+    res.setHeader('Set-Cookie', `refreshToken=${oauthResult.refreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`);
+    res.json(oauthResult);
+  });
+
+  expressRouter.post('/auth/refresh', (req, res) => {
+    try {
+      const rotationResult = rotateRefreshToken(req.body.refreshToken || 'rt_sample_rotation_seed');
+      res.setHeader('Set-Cookie', `refreshToken=${rotationResult.newRefreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`);
+      res.json(rotationResult);
+    } catch (err) {
+      res.status(err.status || 401).json({ status: 'TokenRotationFailed', error: err.message, code: err.code });
+    }
+  });
+
+  expressRouter.get('/auth/rbac-test', (req, res) => {
+    const userRole = req.query.role || 'Employee';
+    const requiredRole = req.query.requiredRole || 'SuperAdmin';
+    try {
+      verifyRBAC(userRole, requiredRole);
+      res.json({ status: 'Authorized', message: `Access Granted. Role '${userRole}' has sufficient privileges for '${requiredRole}' action.`, userRole, requiredRole });
+    } catch (err) {
+      res.status(403).json({ status: 'Forbidden', statusCode: 403, code: err.code, error: err.message, userRole, requiredRole });
+    }
+  });
+
+  expressRouter.get('/auth/users', (req, res) => {
+    const sanitized = userDatabase
+      .filter(u => u.tenant_id === req.tenant.id)
+      .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, tenant_id: u.tenant_id, passwordStorage: 'Bcrypt Hash (Plain-text passwords never stored)', storedHashSample: u.passwordHash.slice(0, 28) + '...' }));
+    res.json({ users: sanitized });
+  });
 } catch (e) {
   // Express fallback
 }
