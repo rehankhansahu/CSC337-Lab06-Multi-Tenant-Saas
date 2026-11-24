@@ -31,6 +31,37 @@ const {
 } = require('../services/authService');
 
 // Core API Controller Functions
+function handleApiRoot(tenantId) {
+  return {
+    status: 'ONLINE',
+    service: 'Enterprise Multi-Tenant Kafka SaaS REST API',
+    version: '1.0.0',
+    developer: 'Muhammad Rehan',
+    portfolio: 'https://rehankhansahu.github.io/muhammad-rehan-portfolio/',
+    github: 'https://github.com/rehankhansahu/CSC337-Lab06-Multi-Tenant-Saas',
+    activeTenant: config.tenants[tenantId] || { id: tenantId },
+    message: 'Welcome to the Multi-Tenant B2B SaaS REST API. Send requests with header \'x-tenant-id: tenant_acme\' or \'tenant_globex\'.',
+    endpoints: {
+      health: '/api/v1/health',
+      tenants: '/api/v1/tenants',
+      catalog: '/api/v1/catalog',
+      orders: '/api/v1/orders',
+      orderById: '/api/v1/orders/:id',
+      kafkaEvents: '/api/v1/kafka/events',
+      nPlusOneBenchmark: '/api/v1/performance/n-plus-one',
+      explainAnalyze: '/api/v1/performance/explain-analyze',
+      connectionPool: '/api/v1/performance/connection-pool',
+      serverlessTelemetry: '/api/v1/serverless/telemetry',
+      serverlessInvoiceDispatch: '/api/v1/serverless/invoice-dispatch (POST)',
+      authLogin: '/api/v1/auth/login (POST)',
+      authOAuth: '/api/v1/auth/oauth (POST)',
+      authRefresh: '/api/v1/auth/refresh (POST)',
+      authRbacTest: '/api/v1/auth/rbac-test?role=Employee&requiredRole=SuperAdmin',
+      authUsers: '/api/v1/auth/users'
+    }
+  };
+}
+
 async function handleHealth(tenantId) {
   return {
     status: 'ONLINE',
@@ -185,6 +216,12 @@ async function dispatchApi(req, res, pathname, query, body) {
   }
 
   try {
+    // --- API ROOT INDEX ---
+    if ((pathname === '/api/v1' || pathname === '/api/v1/') && req.method === 'GET') {
+      const data = handleApiRoot(tenantId);
+      return sendJson(res, 200, data, tenantId, rateHeaders);
+    }
+
     // --- HEALTH & METADATA ---
     if (pathname === '/api/v1/health' && req.method === 'GET') {
       const data = await handleHealth(tenantId);
@@ -400,6 +437,8 @@ try {
 
   expressRouter.use(tenantResolutionMiddleware);
 
+  expressRouter.get('/', (req, res) => res.json(handleApiRoot(req.tenant.id)));
+  expressRouter.get('', (req, res) => res.json(handleApiRoot(req.tenant.id)));
   expressRouter.get('/health', async (req, res) => res.json(await handleHealth(req.tenant.id)));
   expressRouter.get('/tenants', (req, res) => res.json(handleTenants(req.tenant.id)));
   expressRouter.get('/catalog', (req, res) => res.json(handleCatalog(req.tenant.id)));
